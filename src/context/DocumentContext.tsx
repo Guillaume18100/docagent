@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useCallback, ReactNode } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { documentService, chatService } from '@/services/apiService';
@@ -94,6 +93,9 @@ export const DocumentProvider: React.FC<DocumentProviderProps> = ({ children }) 
       
       // Refresh the document preview after sending a message
       await refreshDocumentPreview();
+      
+      // Return the full response so components can see if a document was generated
+      return response;
     } catch (error) {
       toast({
         title: "Error",

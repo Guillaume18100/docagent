@@ -1,69 +1,103 @@
-# Welcome to your Lovable project
+# Document Automation System
 
-## Project info
+A comprehensive document automation system that uses AI to extract text from documents, generate clarifying questions, and create new documents based on user requirements.
 
-**URL**: https://lovable.dev/projects/6f8d1bee-6268-4235-9984-8f62d474c66f
+## Features
 
-## How can I edit this code?
+- **Document Upload & Processing**: Upload documents in various formats (PDF, DOCX, TXT, images)
+- **Text Extraction**: Extract text from documents using OCR and Apache Tika
+- **AI-Powered Document Generation**: Generate new documents based on user requirements
+- **Multiple Output Formats**: Generate documents in DOCX, PDF, TXT, Markdown, or HTML formats
+- **Reference Documents**: Use uploaded documents as references for generating new content
 
-There are several ways of editing your application.
+## AI Components
 
-**Use Lovable**
+This system integrates several open-source AI models and libraries:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6f8d1bee-6268-4235-9984-8f62d474c66f) and start prompting.
+### 1. Document Ingestion & Text Extraction
+- **Tesseract OCR**: Extracts text from images and scanned documents
+- **Apache Tika**: Extracts text and metadata from various document formats
 
-Changes made via Lovable will be committed automatically to this repo.
+### 2. NLP Processing for Clarifying Questions
+- **Hugging Face Transformers (GPT-2)**: Generates clarifying questions based on user inputs
+- **Fallback System**: Rule-based question generation when AI models are unavailable
 
-**Use your preferred IDE**
+### 3. Document Generation
+- **GPT4All**: Local AI model for generating document content
+- **Format Conversion**: Converts AI-generated content to various document formats
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- Tesseract OCR (for image processing)
+- Java Runtime Environment (for Apache Tika)
 
-Follow these steps:
+### Backend Setup
+1. Create a virtual environment:
+   ```
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2. Install dependencies:
+   ```
+   cd docautomation_backend
+   pip install -r requirements.txt
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3. Run migrations:
+   ```
+   python manage.py migrate
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+4. Start the backend server:
+   ```
+   python manage.py runserver
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### Frontend Setup
+1. Install dependencies:
+   ```
+   cd src
+   npm install
+   ```
 
-**Edit a file directly in GitHub**
+2. Start the development server:
+   ```
+   npm run dev
+   ```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Usage
 
-**Use GitHub Codespaces**
+1. **Upload a Document**: Use the upload interface to submit a document
+2. **Generate a New Document**: 
+   - Select the "Generate Documents" tab
+   - Enter a title and choose an output format
+   - Write a detailed prompt describing the document you want
+   - Click "Generate Document"
+3. **Download the Generated Document**: Once processing is complete, download your document
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## AI Model Configuration
 
-## What technologies are used for this project?
+The system is designed to work with or without AI models installed:
 
-This project is built with .
+- **With AI Models**: Full functionality with AI-powered text extraction, question generation, and document creation
+- **Without AI Models**: Fallback to basic text extraction and template-based generation
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Installing Optional AI Components
 
-## How can I deploy this project?
+For full AI functionality, install these additional components:
 
-Simply open [Lovable](https://lovable.dev/projects/6f8d1bee-6268-4235-9984-8f62d474c66f) and click on Share -> Publish.
+1. **Tesseract OCR**:
+   - Linux: `sudo apt-get install tesseract-ocr`
+   - macOS: `brew install tesseract`
+   - Windows: Download from [GitHub](https://github.com/UB-Mannheim/tesseract/wiki)
 
-## I want to use a custom domain - is that possible?
+2. **GPT4All**:
+   The system will automatically download the model file on first use.
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
