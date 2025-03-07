@@ -33,20 +33,36 @@ try:
             model_name = "gpt2"  # Can be changed to a fine-tuned model
             
             # Load tokenizer and model with proper pipeline for text generation
-            TOKENIZER = GPT2Tokenizer.from_pretrained(model_name)
-            GPT_MODEL = GPT2LMHeadModel.from_pretrained(model_name)
-            
-            TRANSFORMERS_AVAILABLE = True
-            print("Hugging Face models initialized successfully!")
+            try:
+                TOKENIZER = GPT2Tokenizer.from_pretrained(model_name)
+                GPT_MODEL = GPT2LMHeadModel.from_pretrained(model_name)
+                
+                TRANSFORMERS_AVAILABLE = True
+                print("Hugging Face models initialized successfully!")
+            except Exception as e:
+                print(f"Error loading model: {str(e)}")
+                # Try a smaller model as fallback
+                try:
+                    print("Trying fallback model: distilgpt2")
+                    TOKENIZER = GPT2Tokenizer.from_pretrained("distilgpt2")
+                    GPT_MODEL = GPT2LMHeadModel.from_pretrained("distilgpt2")
+                    
+                    TRANSFORMERS_AVAILABLE = True
+                    print("Fallback model initialized successfully!")
+                except Exception as e2:
+                    print(f"Error loading fallback model: {str(e2)}")
+                    TRANSFORMERS_AVAILABLE = False
         except Exception as e:
             print(f"Error initializing Transformers models: {str(e)}")
             traceback.print_exc()
+            TRANSFORMERS_AVAILABLE = False
     
     # Start initialization in background
     threading.Thread(target=initialize_models).start()
     
 except ImportError:
     print("Hugging Face Transformers not available. Install with: pip install transformers torch")
+    TRANSFORMERS_AVAILABLE = False
 
 # Mock conversation data for development
 MOCK_CONVERSATIONS = []

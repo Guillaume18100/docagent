@@ -10,6 +10,7 @@ import os
 import threading
 import io
 from datetime import datetime
+import traceback
 
 from .models import DocumentTemplate, GeneratedDocument
 from document_processing.models import Document
@@ -30,20 +31,40 @@ try:
         
         try:
             print("Initializing GPT4All model...")
-            # Load the model - this will download it if not present
-            model_name = "ggml-gpt4all-j-v1.3-groovy"  # A good default model
-            GPT4ALL_MODEL = GPT4All(model_name)
-            GPT4ALL_AVAILABLE = True
-            print("GPT4All model initialized successfully!")
+            # Use a different model that's more reliably available
+            model_name = "orca-mini-3b-gguf2-q4_0"  # Changed from ggml-gpt4all-j-v1.3-groovy
+            
+            try:
+                # First try to initialize with the model
+                GPT4ALL_MODEL = GPT4All(model_name)
+                GPT4ALL_AVAILABLE = True
+                print("GPT4All model initialized successfully!")
+            except ValueError as e:
+                if "404" in str(e):
+                    # Model download failed, try a different model
+                    print(f"Failed to download model {model_name}, trying a fallback model...")
+                    fallback_model = "mistral-7b-instruct-v0.2.Q4_0"
+                    try:
+                        GPT4ALL_MODEL = GPT4All(fallback_model)
+                        GPT4ALL_AVAILABLE = True
+                        print(f"Fallback GPT4All model {fallback_model} initialized successfully!")
+                    except Exception as e2:
+                        print(f"Failed to initialize fallback model: {str(e2)}")
+                        # Final fallback - disable GPT4All
+                        GPT4ALL_AVAILABLE = False
+                else:
+                    raise
         except Exception as e:
             print(f"Error initializing GPT4All model: {str(e)}")
             traceback.print_exc()
+            GPT4ALL_AVAILABLE = False
     
     # Start initialization in background
     threading.Thread(target=initialize_gpt4all).start()
     
 except ImportError:
     print("GPT4All not available. Install with: pip install gpt4all")
+    GPT4ALL_AVAILABLE = False
 
 class DocumentTemplateSerializer(serializers.ModelSerializer):
     class Meta:

@@ -24,8 +24,8 @@ except ImportError:
 try:
     import tika
     from tika import parser
-    # Initialize tika
-    tika.initVM()
+    # Configure Tika to be more resilient
+    tika.TikaClientOnly = True  # Don't try to start a server
     HAVE_TIKA = True
     TIKA_AVAILABLE = True
 except ImportError:
@@ -66,13 +66,14 @@ def extract_text_from_document(file_path):
         if TIKA_AVAILABLE:
             try:
                 print("Attempting text extraction with Apache Tika")
-                parsed = parser.from_file(file_path)
+                # Use Tika in client-only mode to avoid server startup issues
+                parsed = parser.from_file(file_path, requestOptions={'timeout': 30})
                 if parsed.get("content"):
                     extracted_text = parsed["content"]
                     print(f"Successfully extracted {len(extracted_text)} chars with Tika")
                     
                     # If text is very short, might be a scanned document, try OCR
-                    if len(extracted_text.strip()) < 100 and HAVE_TESSERACT:
+                    if len(extracted_text.strip()) < 100 and TESSERACT_AVAILABLE:
                         print("Short text detected, trying OCR as fallback")
                         ocr_text = perform_ocr(file_path)
                         if len(ocr_text.strip()) > len(extracted_text.strip()):
@@ -81,11 +82,14 @@ def extract_text_from_document(file_path):
             except Exception as e:
                 print(f"Tika extraction failed: {str(e)}")
                 # Fall back to OCR if Tika fails
-                if HAVE_TESSERACT:
+                if TESSERACT_AVAILABLE:
                     extracted_text = perform_ocr(file_path)
+                else:
+                    # If OCR is not available, try basic extraction
+                    extracted_text = basic_text_extraction(file_path, file_extension)
         
         # If no text extracted and OCR is available, try OCR
-        if not extracted_text and HAVE_TESSERACT:
+        if not extracted_text and TESSERACT_AVAILABLE:
             extracted_text = perform_ocr(file_path)
         
         # Fallback to basic text extraction if nothing else worked
