@@ -1,69 +1,149 @@
-# Welcome to your Lovable project
+# DocAgent
 
-## Project info
+DocAgent is a document automation platform that combines document processing, NLP analysis, and document generation capabilities. It provides a user-friendly interface for processing, analyzing, and generating documents with AI assistance.
 
-**URL**: https://lovable.dev/projects/6f8d1bee-6268-4235-9984-8f62d474c66f
+## Features
 
-## How can I edit this code?
+- **Document Processing**: Extract text and structure from various document formats
+- **NLP Analysis**: Perform named entity recognition, sentiment analysis, and more
+- **Document Generation**: Create new documents based on templates and AI-generated content
+- **RESTful API**: Integrate with your existing applications
+- **Modern Web Interface**: User-friendly React-based UI
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+### Backend
+- Django 4.2+
+- Django REST Framework
+- Tesseract OCR
+- LangChain
+- Transformers
+- PyTorch
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6f8d1bee-6268-4235-9984-8f62d474c66f) and start prompting.
+### Frontend
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Python 3.8+
+- Node.js 16+
+- npm or yarn
+- Tesseract OCR (for document processing)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+#### Option 1: Simple Setup
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/docagent.git
+cd docagent
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Run the setup script
+chmod +x setup.sh
+./setup.sh
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+#### Option 2: Using Make
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/docagent.git
+cd docagent
+
+# Run the setup command
+make setup
+```
+
+#### Option 3: Using Docker
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/docagent.git
+cd docagent
+
+# Build and start the containers
+docker-compose up -d
+```
+
+### Running the Application
+
+#### Local Development
+
+Start the backend server:
+```bash
+cd docautomation_backend
+source venv/bin/activate
+python manage.py runserver
+```
+
+Start the frontend development server:
+```bash
+cd src
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+#### Using Make
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Run backend
+make run-backend
 
-**Use GitHub Codespaces**
+# In another terminal, run frontend
+make run-frontend
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+#### Using Docker
 
-## What technologies are used for this project?
+```bash
+docker-compose up
+```
 
-This project is built with .
+The application will be available at:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000/api
+- Admin interface: http://localhost:8000/admin (username: admin, password: adminpassword)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Project Structure
 
-## How can I deploy this project?
+```
+docagent/
+├── docautomation_backend/   # Django backend
+│   ├── document_processing/ # Document processing app
+│   ├── nlp/                 # NLP processing app
+│   ├── document_generation/ # Document generation app
+│   └── docautomation_backend/ # Main Django project settings
+├── src/                     # React frontend
+│   ├── components/          # React components
+│   ├── context/             # React context providers
+│   ├── pages/               # Page components
+│   ├── services/            # API services
+│   └── lib/                 # Utility functions
+├── scripts/                 # Utility scripts
+├── .env                     # Environment variables
+└── docker-compose.yml       # Docker Compose configuration
+```
 
-Simply open [Lovable](https://lovable.dev/projects/6f8d1bee-6268-4235-9984-8f62d474c66f) and click on Share -> Publish.
+## API Documentation
 
-## I want to use a custom domain - is that possible?
+The API documentation is available at:
+- OpenAPI (Swagger): http://localhost:8000/api/schema/swagger-ui/
+- ReDoc: http://localhost:8000/api/schema/redoc/
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+If you have any questions or need help, please open an issue on GitHub.
