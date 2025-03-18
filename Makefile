@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-frontend run-backend run-backend-docker run-frontend start-dev start-prod lint-backend lint-frontend test-backend test-frontend docker-up docker-down docker-build clean
+.PHONY: setup setup-backend setup-frontend run-backend run-backend-docker run-frontend start-dev start-prod lint-backend lint-frontend test-backend test-frontend docker-up docker-down docker-build docker-rebuild clean
 
 # Development environment setup
 setup: setup-backend setup-frontend
@@ -53,6 +53,11 @@ docker-down:
 docker-build:
 	docker-compose build
 
+docker-rebuild:
+	docker-compose down
+	docker-compose build --no-cache
+	docker-compose up
+
 # Cleanup
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} +
@@ -80,4 +85,5 @@ help:
 	@echo "docker-up          - Start all services with Docker"
 	@echo "docker-down        - Stop all Docker services"
 	@echo "docker-build       - Build Docker images"
+	@echo "docker-rebuild     - Rebuild and restart Docker containers (fix most issues)"
 	@echo "clean              - Clean generated files"

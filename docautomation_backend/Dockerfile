@@ -10,12 +10,12 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY ../requirements.txt .
+# Copy requirements file first
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . .
+# Copy only the backend directory
+COPY docautomation_backend/ .
 
 # Expose port
 EXPOSE 8000

@@ -8,8 +8,16 @@ COPY package.json package-lock.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy project files
-COPY . .
+# Copy frontend-specific files
+COPY src/ ./src/
+COPY public/ ./public/
+COPY index.html .
+COPY vite.config.ts .
+COPY tsconfig*.json ./
+COPY postcss.config.js .
+COPY tailwind.config.ts .
+COPY components.json .
+COPY eslint.config.js .
 
 # Expose port
 EXPOSE 5173

@@ -3,8 +3,8 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ./docautomation_backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docautomation_backend/Dockerfile
     volumes:
       - ./docautomation_backend:/app
       - backend_static:/app/static

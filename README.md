@@ -110,6 +110,32 @@ The application will be available at:
 - Backend API: http://localhost:8000/api
 - Admin interface: http://localhost:8000/admin (username: admin, password: adminpassword)
 
+## Troubleshooting Docker Issues
+
+If you encounter issues with Docker setup, try these steps:
+
+1. **Rebuild the containers from scratch**:
+   ```bash
+   make docker-rebuild
+   ```
+
+2. **Check container logs**:
+   ```bash
+   docker-compose logs backend
+   docker-compose logs frontend
+   ```
+
+3. **Common issues**:
+   - **Backend can't find requirements.txt**: Make sure the backend Dockerfile is properly set up to copy requirements.txt
+   - **Database connection issues**: Ensure the database service is running before the backend
+   - **Frontend can't connect to backend**: Check the CORS settings and environment variables
+
+4. **Clean all Docker resources and restart**:
+   ```bash
+   docker-compose down --volumes --remove-orphans
+   docker-compose up --build
+   ```
+
 ## Project Structure
 
 ```
