@@ -59,7 +59,33 @@ if ! ps -p $FRONTEND_PID > /dev/null; then
     exit 1
 fi
 
-echo -e "${GREEN}Frontend running at http://localhost:5173${NC}"
+# Get the actual port from Vite logs if possible, otherwise use default port
+VITE_LOG=$(ps -p $FRONTEND_PID -o args= | grep -o "http://localhost:[0-9]*" || echo "http://localhost:8080")
+if [[ $VITE_LOG == "" ]]; then
+    FRONTEND_URL="http://localhost:8080/"
+else
+    FRONTEND_URL=$VITE_LOG/
+fi
+
+echo -e "${GREEN}Frontend running at $FRONTEND_URL${NC}"
+
+# Open browser after a short delay to ensure servers are fully initialized
+sleep 2
+echo -e "${BLUE}Opening browser...${NC}"
+
+# Check the operating system and open browser accordingly
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS - Use -a flag to specify Safari if needed
+    open "$FRONTEND_URL" || open -a "Safari" "$FRONTEND_URL" || echo -e "${YELLOW}Unable to open browser automatically. Please navigate to $FRONTEND_URL manually.${NC}"
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    # Linux
+    xdg-open "$FRONTEND_URL" &>/dev/null || sensible-browser "$FRONTEND_URL" &>/dev/null || x-www-browser "$FRONTEND_URL" &>/dev/null || echo -e "${YELLOW}Unable to automatically open browser. Please navigate to $FRONTEND_URL manually.${NC}"
+elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    # Windows
+    start "$FRONTEND_URL"
+else
+    echo -e "${YELLOW}Unable to automatically open browser. Please navigate to $FRONTEND_URL manually.${NC}"
+fi
 
 # Keep script running
 echo -e "${BLUE}Both servers are running. Press Ctrl+C to stop.${NC}"

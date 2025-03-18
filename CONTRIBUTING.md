@@ -33,14 +33,34 @@ Thank you for your interest in contributing to DocAgent! This document provides 
 
 ### Starting the Development Servers
 
-#### Backend Server
+#### Option 1: Single Command (Recommended)
+
+The simplest way to start both backend and frontend servers:
+
+```bash
+make start-dev
+```
+
+This will start both servers and automatically open the application in your browser.
+
+#### Option 2: Using Docker
+
+```bash
+make start-docker
+```
+
+This will build and start Docker containers for the backend, frontend, and database, then open the application in your browser.
+
+#### Option 3: Manual Start
+
+Start the backend server:
 ```bash
 cd docautomation_backend
 source venv/bin/activate
 python manage.py runserver
 ```
 
-#### Frontend Server
+Start the frontend development server:
 ```bash
 cd src
 npm run dev

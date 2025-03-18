@@ -69,12 +69,24 @@ git clone https://github.com/yourusername/docagent.git
 cd docagent
 
 # Build and start the containers
-docker-compose up -d
+make start-docker
 ```
 
 ### Running the Application
 
-#### Local Development
+#### Option 1: One-Command Launch (Recommended)
+
+Start both backend and frontend with a single command and automatically open the browser:
+
+```bash
+# Using local development environment
+make start-dev
+
+# Or using Docker
+make start-docker
+```
+
+#### Option 2: Manual Launch
 
 Start the backend server:
 ```bash
@@ -89,24 +101,14 @@ cd src
 npm run dev
 ```
 
-#### Using Make
-
-```bash
-# Run backend
-make run-backend
-
-# In another terminal, run frontend
-make run-frontend
-```
-
-#### Using Docker
+#### Option 3: Using Docker (Manual)
 
 ```bash
 docker-compose up
 ```
 
 The application will be available at:
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:8080
 - Backend API: http://localhost:8000/api
 - Admin interface: http://localhost:8000/admin (username: admin, password: adminpassword)
 

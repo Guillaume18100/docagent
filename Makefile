@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-frontend run-backend run-backend-docker run-frontend start-dev start-prod lint-backend lint-frontend test-backend test-frontend docker-up docker-down docker-build docker-rebuild clean
+.PHONY: setup setup-backend setup-frontend run-backend run-backend-docker run-frontend start-dev start-prod start-docker lint-backend lint-frontend test-backend test-frontend docker-up docker-down docker-build docker-rebuild clean
 
 # Development environment setup
 setup: setup-backend setup-frontend
@@ -28,6 +28,10 @@ start-dev:
 start-prod:
 	chmod +x scripts/start-prod.sh
 	./scripts/start-prod.sh
+
+start-docker:
+	chmod +x scripts/start-docker.sh
+	./scripts/start-docker.sh
 
 # Code quality checks
 lint-backend:
@@ -76,8 +80,9 @@ help:
 	@echo "run-backend        - Run backend server"
 	@echo "run-backend-docker - Run backend server in Docker"
 	@echo "run-frontend       - Run frontend server"
-	@echo "start-dev          - Start both backend and frontend in development mode"
+	@echo "start-dev          - Start both backend and frontend in development mode with browser"
 	@echo "start-prod         - Start in production mode with built frontend"
+	@echo "start-docker       - Start using Docker and open browser"
 	@echo "lint-backend       - Run linting on backend"
 	@echo "lint-frontend      - Run linting on frontend"
 	@echo "test-backend       - Run backend tests"
