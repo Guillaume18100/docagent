@@ -1,2 +1,29 @@
-# Authentication
-djangorestframework-simplejwt>=5.0.0 
+# Django and Django REST Framework
+Django>=4.2.0,<5.0.0
+djangorestframework>=3.14.0
+django-cors-headers>=4.0.0
+djangorestframework-simplejwt>=5.0.0
+
+# Document Processing
+pytesseract>=0.3.10
+tika>=1.24,<3.0.0
+pdf2image>=1.16.3
+python-docx>=0.8.11
+
+# NLP and AI
+transformers>=4.28.1
+torch>=2.0.0
+langchain>=0.0.200
+sentence-transformers>=2.2.2
+
+# Document Generation
+gpt4all>=1.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+Pillow>=9.5.0
+numpy>=1.24.3
+
+# Testing
+pytest>=7.3.1
+pytest-django>=4.5.2 
