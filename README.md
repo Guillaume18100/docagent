@@ -16,7 +16,7 @@ DocAgent is a document automation platform that combines document processing, NL
 - Django 4.2+
 - Django REST Framework
 - Tesseract OCR
-- LangChain
+- NLTK
 - Transformers
 - PyTorch
 
@@ -34,108 +34,79 @@ DocAgent is a document automation platform that combines document processing, NL
 - Python 3.8+
 - Node.js 16+
 - npm or yarn
-- Tesseract OCR (for document processing)
+- Optional: Docker and docker-compose for container-based deployment
 
-### Installation
-
-#### Option 1: Simple Setup
+### Installation & Running (Simplified)
 
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/docagent.git
 cd docagent
 
-# Run the setup script
-chmod +x setup.sh
-./setup.sh
-```
-
-#### Option 2: Using Make
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/docagent.git
-cd docagent
-
-# Run the setup command
+# Set up the project (installs all dependencies)
 make setup
+
+# Start the application (automatically uses the best available method)
+make start
 ```
 
-#### Option 3: Using Docker
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/docagent.git
-cd docagent
-
-# Build and start the containers
-make start-docker
-```
-
-### Running the Application
-
-#### Option 1: One-Command Launch (Recommended)
-
-Start both backend and frontend with a single command and automatically open the browser:
-
-```bash
-# Using local development environment
-make start-dev
-
-# Or using Docker
-make start-docker
-```
-
-#### Option 2: Manual Launch
-
-Start the backend server:
-```bash
-cd docautomation_backend
-source venv/bin/activate
-python manage.py runserver
-```
-
-Start the frontend development server:
-```bash
-cd src
-npm run dev
-```
-
-#### Option 3: Using Docker (Manual)
-
-```bash
-docker-compose up
-```
+The system will automatically:
+1. Install all required dependencies (including NLP libraries)
+2. Set up the database and apply migrations
+3. Start both backend and frontend servers
+4. Open the application in your browser
 
 The application will be available at:
 - Frontend: http://localhost:8080
 - Backend API: http://localhost:8000/api
-- Admin interface: http://localhost:8000/admin (username: admin, password: adminpassword)
+- Admin interface: http://localhost:8000/admin
 
-## Troubleshooting Docker Issues
+### Alternative Methods
 
-If you encounter issues with Docker setup, try these steps:
+If you prefer to use a specific deployment method, you can still use:
 
-1. **Rebuild the containers from scratch**:
+```bash
+# Start in local development mode
+make start-dev
+
+# Start using Docker
+make start-docker
+```
+
+## AI Analysis Feature
+
+DocAgent now includes automatic AI analysis for all uploaded documents. When you upload a document, the system will:
+
+1. Extract text from the document
+2. Generate a summary
+3. Extract keywords and entities
+4. Analyze sentiment and topics
+5. Display the results in the "AI Analysis" tab
+
+This feature is available in all deployment modes and requires no additional configuration.
+
+## Troubleshooting
+
+If you encounter any issues:
+
+1. **Restart the application**:
+   ```bash
+   make start
+   ```
+
+2. **Rebuild from scratch** (Docker mode):
    ```bash
    make docker-rebuild
    ```
 
-2. **Check container logs**:
+3. **Check logs**:
    ```bash
+   # For Docker deployment
    docker-compose logs backend
    docker-compose logs frontend
-   ```
-
-3. **Common issues**:
-   - **Backend can't find requirements.txt**: Make sure the backend Dockerfile is properly set up to copy requirements.txt
-   - **Database connection issues**: Ensure the database service is running before the backend
-   - **Frontend can't connect to backend**: Check the CORS settings and environment variables
-
-4. **Clean all Docker resources and restart**:
-   ```bash
-   docker-compose down --volumes --remove-orphans
-   docker-compose up --build
+   
+   # For local development
+   Check terminal output from the running servers
    ```
 
 ## Project Structure
@@ -152,9 +123,8 @@ docagent/
 │   ├── context/             # React context providers
 │   ├── pages/               # Page components
 │   ├── services/            # API services
-│   └── lib/                 # Utility functions
+│   └── types/               # TypeScript type definitions
 ├── scripts/                 # Utility scripts
-├── .env                     # Environment variables
 └── docker-compose.yml       # Docker Compose configuration
 ```
 

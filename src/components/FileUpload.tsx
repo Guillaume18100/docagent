@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useDocumentContext } from '@/context/DocumentContext';
 import { documentService } from '@/services/apiService';
@@ -82,7 +81,7 @@ const FileUpload: React.FC = () => {
       const progressInterval = setInterval(() => {
         setUploadState(prev => ({
           ...prev,
-          progress: Math.min(prev.progress + 10, 95),
+          progress: Math.min(prev.progress + 10, 90), // Cap at 90% until complete
         }));
       }, 300);
       
@@ -115,15 +114,28 @@ const FileUpload: React.FC = () => {
         fileInputRef.current.value = '';
       }
     } catch (error) {
+      clearInterval(progressInterval);
+      
+      // Check if it's a connection error
+      const isConnectionError = error instanceof Error && 
+        (error.message.includes('Network Error') || 
+         error.message.includes('Failed to fetch') ||
+         error.message.includes('Could not connect to the server') ||
+         error.message.includes('timeout'));
+      
       setUploadState({
         isUploading: false,
         progress: 0,
-        error: 'Failed to upload document. Please try again.',
+        error: isConnectionError 
+          ? 'Connection error: Unable to reach the server. Please check your network connection and try again.'
+          : 'Failed to upload document. Please try again.',
       });
       
       toast({
-        title: "Error",
-        description: "Failed to upload document",
+        title: "Upload Error",
+        description: isConnectionError 
+          ? "Connection failed. Please check your network and try again." 
+          : "Failed to upload document",
         variant: "destructive",
       });
     }

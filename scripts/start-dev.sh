@@ -25,10 +25,23 @@ cleanup() {
 # Set up trap to catch Ctrl+C
 trap cleanup INT TERM
 
-# Start backend server
+# Start backend server with NLP dependencies
 echo -e "${GREEN}Starting Django backend server...${NC}"
 cd docautomation_backend
 source venv/bin/activate
+
+# Install NLP dependencies if not already installed
+if ! pip show nltk &>/dev/null || ! pip show transformers &>/dev/null; then
+    echo -e "${YELLOW}Installing required NLP dependencies...${NC}"
+    pip install nltk transformers
+    python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+fi
+
+# Apply migrations
+echo -e "${GREEN}Applying migrations...${NC}"
+python manage.py migrate
+
+# Start server
 python manage.py runserver 8000 &
 BACKEND_PID=$!
 cd ..
@@ -75,8 +88,8 @@ echo -e "${BLUE}Opening browser...${NC}"
 
 # Check the operating system and open browser accordingly
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    # macOS - Use -a flag to specify Safari if needed
-    open "$FRONTEND_URL" || open -a "Safari" "$FRONTEND_URL" || echo -e "${YELLOW}Unable to open browser automatically. Please navigate to $FRONTEND_URL manually.${NC}"
+    # macOS - Try multiple browsers
+    open "$FRONTEND_URL" || open -a "Safari" "$FRONTEND_URL" || open -a "Google Chrome" "$FRONTEND_URL" || open -a "Firefox" "$FRONTEND_URL" || echo -e "${YELLOW}Unable to open browser automatically. Please navigate to $FRONTEND_URL manually.${NC}"
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux
     xdg-open "$FRONTEND_URL" &>/dev/null || sensible-browser "$FRONTEND_URL" &>/dev/null || x-www-browser "$FRONTEND_URL" &>/dev/null || echo -e "${YELLOW}Unable to automatically open browser. Please navigate to $FRONTEND_URL manually.${NC}"

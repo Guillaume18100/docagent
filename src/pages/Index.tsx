@@ -1,10 +1,11 @@
-
 import React from 'react';
 import { DocumentProvider } from '@/context/DocumentContext';
 import FileUpload from '@/components/FileUpload';
 import ChatInterface from '@/components/ChatInterface';
 import DocumentViewer from '@/components/DocumentViewer';
+import DocumentAnalysisViewer from '@/components/DocumentAnalysisViewer';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Index: React.FC = () => {
   return (
@@ -42,6 +43,7 @@ const Index: React.FC = () => {
                 <h3 className="text-lg font-medium mb-2">How It Works</h3>
                 <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
                   <li>Upload your document</li>
+                  <li>The system will automatically analyze your document</li>
                   <li>Specify your requirements in the chat</li>
                   <li>Review and download the generated draft</li>
                 </ol>
@@ -53,7 +55,18 @@ const Index: React.FC = () => {
             </div>
             
             <div className="h-[700px]">
-              <DocumentViewer />
+              <Tabs defaultValue="preview" className="h-full flex flex-col">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="preview">Document Preview</TabsTrigger>
+                  <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
+                </TabsList>
+                <TabsContent value="preview" className="flex-1 mt-0">
+                  <DocumentViewer />
+                </TabsContent>
+                <TabsContent value="analysis" className="flex-1 mt-0">
+                  <DocumentAnalysisViewer />
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </main>

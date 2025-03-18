@@ -9,6 +9,7 @@ Thank you for your interest in contributing to DocAgent! This document provides 
 - Python 3.8+
 - Node.js 16+
 - npm or yarn
+- Optional: Docker and docker-compose for container-based deployment
 
 ### Setting up the Development Environment
 
@@ -18,53 +19,67 @@ Thank you for your interest in contributing to DocAgent! This document provides 
    cd docagent
    ```
 
-2. Run the setup script:
+2. Set up the project:
    ```bash
-   chmod +x setup.sh
-   ./setup.sh
+   make setup
    ```
 
-   This script will:
+   This will:
    - Set up a Python virtual environment
-   - Install backend dependencies
-   - Set up the database and create a superuser
+   - Install backend dependencies (including NLP libraries)
    - Install frontend dependencies
-   - Build the frontend
+   - Download necessary model data
 
-### Starting the Development Servers
+### Starting the Development Environment
 
-#### Option 1: Single Command (Recommended)
-
-The simplest way to start both backend and frontend servers:
+The simplest way to start development is with a single command:
 
 ```bash
-make start-dev
+make start
 ```
 
-This will start both servers and automatically open the application in your browser.
+This command will:
+- Automatically detect the best available environment (local or Docker)
+- Start all required services
+- Apply database migrations
+- Open the application in your browser
 
-#### Option 2: Using Docker
+The application will be available at:
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:8000/api
+- Admin interface: http://localhost:8000/admin
+
+### Alternative Start Methods
+
+If you prefer a specific environment, you can use:
 
 ```bash
+# Start in local development mode
+make start-dev
+
+# Start using Docker
 make start-docker
 ```
 
-This will build and start Docker containers for the backend, frontend, and database, then open the application in your browser.
+## Developer Workflow for AI Analysis Feature
 
-#### Option 3: Manual Start
+When working on the AI analysis feature:
 
-Start the backend server:
-```bash
-cd docautomation_backend
-source venv/bin/activate
-python manage.py runserver
-```
+1. Documents are analyzed automatically when uploaded
+2. Analysis results can be viewed in the "AI Analysis" tab
+3. The NLP pipeline includes:
+   - Text extraction from documents
+   - Summarization
+   - Keyword extraction
+   - Entity recognition
+   - Sentiment analysis
+   - Topic identification
 
-Start the frontend development server:
-```bash
-cd src
-npm run dev
-```
+Key files for the AI analysis feature:
+- `docautomation_backend/nlp/models.py` - Database models for analysis results
+- `docautomation_backend/nlp/utils.py` - NLP processing utilities
+- `docautomation_backend/nlp/views.py` - API endpoints for analysis
+- `src/components/DocumentAnalysisViewer.tsx` - Frontend component for displaying analysis
 
 ## Code Style and Guidelines
 
@@ -96,7 +111,7 @@ All submissions require review. The maintainers will review your PR and may sugg
 
 - Write tests for all new features or bug fixes
 - Ensure all existing tests pass before submitting a PR
-- For backend: Use pytest
+- For backend: Use Django's test framework
 - For frontend: Use Jest/React Testing Library
 
 ## Documentation

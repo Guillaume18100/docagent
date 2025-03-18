@@ -1,4 +1,3 @@
-
 // Document types
 export interface Document {
   id: string;
@@ -6,6 +5,20 @@ export interface Document {
   created_at: string;
   status: 'processing' | 'ready' | 'failed';
   file_type: string;
+}
+
+// Document analysis type
+export interface DocumentAnalysis {
+  id: string;
+  document: string;
+  summary: string;
+  keywords: string[];
+  sentiment: string;
+  entities: Record<string, string[]>;
+  topics: string[];
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message: string | null;
+  created_at: string;
 }
 
 // Chat message types
@@ -37,9 +50,11 @@ export interface UploadState {
 export interface DocumentContextType {
   currentDocument: Document | null;
   documentPreview: DocumentPreview | null;
+  documentAnalysis: DocumentAnalysis | null;
   chatMessages: ChatMessage[];
   isLoading: boolean;
   setCurrentDocument: (document: Document | null) => void;
   refreshDocumentPreview: () => Promise<void>;
+  refreshDocumentAnalysis: () => Promise<void>;
   sendChatMessage: (message: string) => Promise<void>;
 }

@@ -3,59 +3,66 @@
 # Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${BLUE}Setting up DocAgent project...${NC}"
+echo -e "${BLUE}Setting up Document Automation Environment${NC}"
 
-# Backend Setup
-echo -e "\n${GREEN}Setting up backend...${NC}"
+# Create backend virtual environment
+echo -e "${GREEN}Setting up backend...${NC}"
 cd docautomation_backend
 
-# Create a virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv venv
+# Check if Python is installed
+if ! command -v python3 &> /dev/null; then
+    echo -e "${RED}Python 3 is not installed. Please install Python 3 and try again.${NC}"
+    exit 1
 fi
 
-# Activate the virtual environment
+# Create and activate virtual environment
+echo "Creating virtual environment..."
+python3 -m venv venv
 source venv/bin/activate
 
-# Install dependencies
+# Install backend dependencies
 echo "Installing dependencies..."
-pip install -r ../requirements.txt
+pip install --upgrade pip
+pip install -r requirements.txt
 
-# Run migrations
-echo "Running migrations..."
-python manage.py makemigrations document_processing
-python manage.py makemigrations nlp
-python manage.py makemigrations document_generation
+# Install NLP dependencies
+echo "Installing NLP dependencies..."
+pip install nltk transformers
+
+# Download NLTK data
+echo "Downloading NLTK data..."
+python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+
+# Apply migrations
+echo "Applying database migrations..."
 python manage.py migrate
 
-# Create a superuser if it doesn't exist
-echo "Creating superuser..."
-python manage.py shell -c "from django.contrib.auth.models import User; User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')"
-
-# Initialize sample data
-echo "Initializing sample data..."
-python manage.py initialize_data
+# Deactivate virtual environment
+deactivate
 
 cd ..
 
-# Frontend Setup
-echo -e "\n${GREEN}Setting up frontend...${NC}"
+# Setup frontend
+echo -e "${GREEN}Setting up frontend...${NC}"
 cd src
 
-# Install dependencies
-echo "Installing dependencies..."
-npm install
+# Check if Node.js is installed
+if ! command -v npm &> /dev/null; then
+    echo -e "${YELLOW}Node.js/npm is not installed. Skipping frontend setup.${NC}"
+    echo -e "${YELLOW}Please install Node.js and run 'npm install' in the src directory.${NC}"
+    cd ..
+    exit 0
+fi
 
-# Build the project
-echo "Building the project..."
-npm run build
+# Install frontend dependencies
+echo "Installing frontend dependencies..."
+npm install
 
 cd ..
 
-echo -e "\n${GREEN}Setup complete!${NC}"
-echo -e "To start the development servers:"
-echo -e "1. Backend: cd docautomation_backend && source venv/bin/activate && python manage.py runserver"
-echo -e "2. Frontend: cd src && npm run dev" 
+echo -e "${GREEN}Setup complete! You can now run the application using:${NC}"
+echo -e "${BLUE}make start${NC}" 

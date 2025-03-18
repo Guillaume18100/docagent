@@ -43,7 +43,47 @@ def public_upload_document(request):
         document.save()
         
         # Process document in background thread
-        threading.Thread(target=process_document, args=(document,)).start()
+        def process_and_analyze():
+            # First process the document to extract text
+            process_document(document)
+            
+            # Then trigger AI analysis
+            from nlp.models import DocumentAnalysis
+            from nlp.utils import analyze_document
+            
+            # Create analysis record
+            analysis = DocumentAnalysis(document=document, status='processing')
+            analysis.save()
+            
+            # Run analysis
+            try:
+                result = analyze_document(document)
+                
+                # Update analysis record
+                if result['success']:
+                    analysis.summary = result['results']['summary']
+                    analysis.keywords = result['results']['keywords']
+                    analysis.sentiment = result['results']['sentiment']
+                    analysis.entities = result['results']['entities']
+                    analysis.topics = result['results']['topics']
+                    analysis.status = 'completed'
+                else:
+                    analysis.status = 'failed'
+                    analysis.error_message = result.get('error', 'Unknown error')
+                
+                analysis.save()
+                print(f"AI analysis completed for document {document.id}")
+            except Exception as e:
+                import traceback
+                print(f"Error in AI analysis: {str(e)}")
+                print(traceback.format_exc())
+                
+                # Update analysis record with error
+                analysis.status = 'failed'
+                analysis.error_message = str(e)
+                analysis.save()
+        
+        threading.Thread(target=process_and_analyze).start()
         
         return Response({
             'id': document.id,

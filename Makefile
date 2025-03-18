@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-frontend run-backend run-backend-docker run-frontend start-dev start-prod start-docker lint-backend lint-frontend test-backend test-frontend docker-up docker-down docker-build docker-rebuild clean
+.PHONY: setup setup-backend setup-frontend run-backend run-backend-docker run-frontend start start-dev start-prod start-docker lint-backend lint-frontend test-backend test-frontend docker-up docker-down docker-build docker-rebuild clean
 
 # Development environment setup
 setup: setup-backend setup-frontend
@@ -20,7 +20,19 @@ run-backend-docker:
 run-frontend:
 	cd src && npm run dev
 
-# Start scripts
+# Unified start command - detects environment and starts appropriately
+start:
+	@if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1 && command -v docker-compose >/dev/null 2>&1; then \
+		echo "Docker detected, starting with Docker..."; \
+		chmod +x scripts/start-docker.sh; \
+		./scripts/start-docker.sh; \
+	else \
+		echo "Docker not available, starting in development mode..."; \
+		chmod +x scripts/start-dev.sh; \
+		./scripts/start-dev.sh; \
+	fi
+
+# Legacy start scripts (for backward compatibility)
 start-dev:
 	chmod +x scripts/start-dev.sh
 	./scripts/start-dev.sh
@@ -77,6 +89,7 @@ help:
 	@echo "setup              - Set up development environment (backend and frontend)"
 	@echo "setup-backend      - Set up backend development environment"
 	@echo "setup-frontend     - Set up frontend development environment"
+	@echo "start              - RECOMMENDED: Start the application in the best available mode"
 	@echo "run-backend        - Run backend server"
 	@echo "run-backend-docker - Run backend server in Docker"
 	@echo "run-frontend       - Run frontend server"
