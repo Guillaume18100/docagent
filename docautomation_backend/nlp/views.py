@@ -47,6 +47,7 @@ class AnalysisViewSet(viewsets.ModelViewSet):
     def analyze_document(self, request):
         """Analyze a document based on document_id"""
         document_id = request.data.get('document_id')
+        force_reanalysis = request.data.get('force_reanalysis', False)
         
         if not document_id:
             return Response(
@@ -60,10 +61,17 @@ class AnalysisViewSet(viewsets.ModelViewSet):
             # Check if document has already been analyzed
             analysis = DocumentAnalysis.objects.filter(document=document).first()
             
-            if not analysis:
-                # Create a new analysis record
-                analysis = DocumentAnalysis(document=document, status='processing')
-                analysis.save()
+            # If analysis doesn't exist, or if force_reanalysis is True
+            if not analysis or force_reanalysis:
+                # If we're forcing a reanalysis and the analysis already exists, update its status
+                if analysis and force_reanalysis:
+                    analysis.status = 'processing'
+                    analysis.save()
+                    logger.info(f"Forcing reanalysis of document {document_id}")
+                else:
+                    # Create a new analysis record
+                    analysis = DocumentAnalysis(document=document, status='processing')
+                    analysis.save()
                 
                 # Run the analysis in a background thread
                 def analyze_in_background():

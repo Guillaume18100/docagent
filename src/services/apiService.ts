@@ -6,6 +6,7 @@ const DOCUMENTS_API_URL = import.meta.env.VITE_DOCUMENTS_API_URL || `${API_BASE_
 const NLP_API_URL = import.meta.env.VITE_NLP_API_URL || `${API_BASE_URL}/nlp/`;
 const GENERATE_API_URL = import.meta.env.VITE_GENERATE_API_URL || `${API_BASE_URL}/generate/`;
 const MEDIA_URL = import.meta.env.VITE_MEDIA_URL || 'http://localhost:8000/media/';
+const CHAT_API_URL = import.meta.env.VITE_CHAT_API_URL || `${API_BASE_URL}/chat/`;
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -281,53 +282,65 @@ export const nlpApi = {
 
   getDocumentAnalysis: async (documentId: string) => {
     try {
-      console.log(`Fetching analysis for document ID: ${documentId}`);
-      // CRITICAL FIX: Force using the analyze_document action via POST to avoid the missing get_document_analysis method
+      console.log(`Fetching analysis for document: ${documentId}`);
+      
       const response = await apiClient.post(`${NLP_API_URL}analyze/`, {
         document_id: documentId,
-        action: 'analyze_document', // Changed from 'get_analysis' to 'analyze_document'
-        request_type: 'get_existing_analysis', // Clarify we want to get existing analysis
-        is_frontend_request: true, // Add debugging flag
-        method_hint: 'post_only' // Add hint that we're avoiding GET completely
+        action: 'get_analysis',
+        request_type: 'get_analysis',
+        is_frontend_request: true
       });
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching analysis for document ${documentId}:`, error);
       
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 404) {
-          console.log('Analysis not found for document, will need to trigger a new one');
-          return null; // Return null to indicate we need to create a new analysis
-        } else if (error.response?.status === 500) {
-          console.error('Server error details:', error.response.data);
-          throw new Error('The server encountered an error retrieving document analysis.');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching document analysis:', error);
+      
+      if (error.response) {
+        // Server responded with non-200 status
+        if (error.response.status === 404) {
+          console.log('No analysis found for document - needs to be triggered');
+          throw { ...error, status: 404, message: 'Analysis not found' };
+        } else if (error.response.status === 409) {
+          console.log('Analysis already exists for document');
+          // This is not actually an error, just return that it exists
+          throw { status: 409, message: 'Analysis already exists' };
+        } else if (error.response.status === 500) {
+          console.error('Server error when fetching analysis:', error.response.data);
+          throw { status: 500, message: 'Server error when fetching analysis' };
         }
       }
+      
       throw error;
     }
   },
 
   triggerDocumentAnalysis: async (documentId: string) => {
     try {
-      console.log(`Triggering analysis for document ID: ${documentId}`);
-      // Focus on using the regular analyze endpoint with very explicit action
+      console.log(`Triggering analysis for document: ${documentId}`);
+      
       const response = await apiClient.post(`${NLP_API_URL}analyze/`, {
         document_id: documentId,
         action: 'analyze_document',
-        method: 'analyze_document', // Add method parameter for clarity
-        operation: 'create',  // Specify this is creating a new analysis
         request_type: 'analyze',
-        is_frontend_request: true, // Add debugging flag
-        method_hint: 'post_only' // Add hint that we're avoiding GET completely
+        is_frontend_request: true
       });
-      return response.data;
-    } catch (error) {
-      console.error(`Error triggering analysis for document ${documentId}:`, error);
       
-      if (axios.isAxiosError(error) && error.response?.status === 500) {
-        console.error('Server error details:', error.response.data);
-        throw new Error('Server error while analyzing document. Try again later.');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error triggering document analysis:', error);
+      
+      if (error.response) {
+        // Check for specific error types
+        if (error.response.status === 409) {
+          console.log('Analysis already exists for document');
+          // Return a structured message to allow the calling code to handle gracefully
+          throw { status: 409, message: 'Analysis already exists' };
+        } else if (error.response.status === 500) {
+          console.error('Server error when triggering analysis:', error.response.data);
+          throw { status: 500, message: 'Server error when triggering document analysis' };
+        }
       }
+      
       throw error;
     }
   },
@@ -386,108 +399,105 @@ export const nlpApi = {
     }
   },
   
-  sendMessage: async (documentId: number, message: string) => {
+  sendMessage: async (documentId: string, message: string) => {
     try {
-      console.log(`Sending message for document ${documentId}: ${message}`);
+      console.log(`Sending message for document: ${documentId}`);
       
-      // Extract operation type from the message if possible
-      let operationType = 'general';
-      const messageLower = message.toLowerCase();
-      if (messageLower.includes('summarize')) operationType = 'summarize';
-      if (messageLower.includes('simplify')) operationType = 'simplify';
-      if (messageLower.includes('extract')) operationType = 'extract';
-      if (messageLower.includes('format')) operationType = 'format';
-      if (messageLower.includes('legal')) operationType = 'legal';
-      if (messageLower.includes('translate')) operationType = 'translate';
-      if (messageLower.includes('retry analysis') || messageLower.includes('analyze again')) {
-        operationType = 'analyze';
+      // Determine operation type from message content
+      let operationType = 'chat';
+      
+      if (message.toLowerCase().includes('summarize')) {
+        operationType = 'summarize';
+      } else if (message.toLowerCase().includes('simplify')) {
+        operationType = 'simplify';
+      } else if (message.toLowerCase().includes('extract')) {
+        operationType = 'extract_items';
+      } else if (message.toLowerCase().includes('format') || message.toLowerCase().includes('structure')) {
+        operationType = 'format';
+      } else if (message.toLowerCase().includes('legal')) {
+        operationType = 'legal_analysis';
+      } else if (message.toLowerCase().includes('translate')) {
+        operationType = 'translate';
+      } else if (message.toLowerCase().includes('retry analysis') || message.toLowerCase().includes('analyze again')) {
+        operationType = 'retry_analysis';
       }
       
-      console.log(`Detected operation type: ${operationType}`);
-      
-      // Map to the new API - create a new user query or add to conversation
-      const payload = {
+      const response = await apiClient.post(`${CHAT_API_URL}messages/`, {
         document_id: documentId,
-        query_text: message,
+        content: message,
         operation_type: operationType,
-        is_frontend_request: true, // Add debugging flag
-        action: 'chat', // Clarify the intent
-        request_type: 'chat' // Indicate the type of request consistently
-      };
+        action: 'chat',
+        is_frontend_request: true
+      });
       
-      console.log('Sending payload:', payload);
-      
-      const response = await apiClient.post(`${NLP_API_URL}analyze/`, payload);
-      
-      console.log('Response from server:', response.data);
-      
-      if (response.data && (response.data.conversation || response.data.result)) {
-        // If we get a conversation object back with messages, extract them
-        console.log('Received conversation response:', response.data);
-        return {
-          userMessage: {
+      // Format and return message objects
+      if (response.data && response.data.conversation) {
+        const messages = [];
+        
+        // Add user message
+        if (response.data.conversation.user_message) {
+          messages.push({
+            id: response.data.conversation.user_message.id || `user-${Date.now()}`,
+            role: 'user',
+            content: response.data.conversation.user_message.content || message,
+            created_at: response.data.conversation.user_message.created_at || new Date().toISOString()
+          });
+        } else {
+          // Fallback if user message not returned
+          messages.push({
             id: `user-${Date.now()}`,
-            document_id: documentId,
+            role: 'user',
             content: message,
-            sender: 'user',
-            timestamp: new Date().toISOString(),
-          },
-          systemResponse: {
-            id: `system-${Date.now()}`,
-            document_id: documentId,
-            content: response.data.result || 
-                     (response.data.messages && response.data.messages.length > 1 ? 
-                      response.data.messages[1].content : 
-                      "I've processed your request."),
-            sender: 'assistant',
-            timestamp: new Date().toISOString(),
-          }
-        };
-      } else {
-        // Default response structure
-        console.log('Received generic response - creating default message structure');
-        return {
-          userMessage: {
-            id: `user-${Date.now()}`,
-            document_id: documentId,
-            content: message,
-            sender: 'user',
-            timestamp: new Date().toISOString(),
-          },
-          systemResponse: {
-            id: `system-${Date.now()}`,
-            document_id: documentId,
-            content: response.data?.message || 'I have processed your request.',
-            sender: 'assistant',
-            timestamp: new Date().toISOString(),
-          }
-        };
-      }
-    } catch (error) {
-      console.error(`Error sending message for document ${documentId}:`, error);
-      
-      if (axios.isAxiosError(error) && error.response?.status === 500) {
-        console.error('Server error details:', error.response?.data);
-        throw new Error('Server error while processing your request. Try a simpler query or try again later.');
-      }
-      
-      // Return a fallback message pair to avoid cascading errors
-      return {
-        userMessage: {
-          id: `user-error-${Date.now()}`,
-          document_id: documentId,
-          content: message,
-          sender: 'user',
-          timestamp: new Date().toISOString(),
-        },
-        systemResponse: {
-          id: `system-error-${Date.now()}`,
-          document_id: documentId,
-          content: "I'm sorry, I encountered an error processing your request. The server might be experiencing issues. Please try again later.",
-          sender: 'assistant',
-          timestamp: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          });
         }
-      };
+        
+        // Add system response
+        if (response.data.conversation.system_response) {
+          messages.push({
+            id: response.data.conversation.system_response.id || `system-${Date.now()}`,
+            role: 'system',
+            content: response.data.conversation.system_response.content || 'I processed your request.',
+            created_at: response.data.conversation.system_response.created_at || new Date().toISOString()
+          });
+        } else {
+          // Fallback if system response not returned
+          messages.push({
+            id: `system-${Date.now()}`,
+            role: 'system',
+            content: 'I processed your request but encountered an issue with the response format.',
+            created_at: new Date().toISOString()
+          });
+        }
+        
+        return messages;
+      } else {
+        // Handle unexpected response format
+        console.warn('Unexpected response format from chat API:', response.data);
+        return [
+          {
+            id: `user-${Date.now()}`,
+            role: 'user',
+            content: message,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: `system-${Date.now()}`,
+            role: 'system',
+            content: 'I received your message but encountered an issue processing it.',
+            created_at: new Date().toISOString()
+          }
+        ];
+      }
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      
+      if (error.response && error.response.status === 500) {
+        console.error('Server error details:', error.response.data);
+        throw new Error('The server encountered an error processing your message. Please try again later.');
+      }
+      
+      throw error;
     }
   }
 };

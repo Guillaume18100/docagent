@@ -55,91 +55,140 @@ export const DocumentProvider: React.FC<DocumentProviderProps> = ({ children }) 
     if (!currentDocument) return;
     
     setIsLoading(true);
-    let retryCount = 0;
-    const maxRetries = 2;
     
-    // First, verify the document is properly processed
     try {
-      const checkResult = await documentService.checkDocument(currentDocument.id);
-      console.log('Document check result:', checkResult);
+      console.log("Refreshing document analysis for:", currentDocument.id);
       
-      if (checkResult.status === 'error') {
+      // Check if document is processed in the backend
+      const documentCheck = await documentService.checkDocument(currentDocument.id);
+      console.log("Document check result:", documentCheck);
+      
+      // If the document has an error status
+      if (documentCheck.status === 'error') {
         toast({
-          title: "Document Error",
-          description: checkResult.message || "The document has processing errors",
-          variant: "destructive",
+          title: "Error processing document",
+          description: documentCheck.message || "There was an error processing your document.",
+          variant: "destructive"
         });
         setIsLoading(false);
         return;
       }
       
-      if (checkResult.status === 'pending') {
+      // If document is still being processed
+      if (documentCheck.status === 'pending') {
         toast({
-          title: "Document Processing",
-          description: "The document is still being processed. Try again in a moment.",
+          title: "Document is still processing",
+          description: "Your document is still being processed. Please try again shortly.",
+          variant: "default"
         });
         setIsLoading(false);
         return;
       }
-    } catch (error) {
-      console.error('Error checking document:', error);
-      // Continue even if check fails
-    }
-    
-    const attemptAnalysis = async () => {
-      try {
-        console.log("Attempting to get existing analysis for document:", currentDocument.id);
-        // First try to get existing analysis
-        let analysis = await nlpApi.getDocumentAnalysis(currentDocument.id);
-        
-        // If no analysis exists, trigger a new one
-        if (!analysis) {
-          console.log("No existing analysis found, triggering new analysis");
-          analysis = await nlpApi.triggerDocumentAnalysis(currentDocument.id);
-        }
-        
-        console.log("Received analysis:", analysis);
-        if (analysis) {
+      
+      // Try to get existing analysis
+      let maxRetries = 2;
+      let retryCount = 0;
+      let success = false;
+      
+      // Create a function to attempt getting or creating the analysis
+      const attemptAnalysis = async () => {
+        try {
+          // First try to get any existing analysis
+          const analysis = await nlpApi.getDocumentAnalysis(currentDocument.id);
+          console.log("Existing analysis found:", analysis);
           setDocumentAnalysis(analysis);
-          return true;
-        } else {
-          throw new Error("Empty analysis response");
+          success = true;
+        } catch (error: any) {
+          console.log("Error fetching analysis:", error);
+          
+          // If the error message indicates analysis already exists, we can consider this a success
+          if (error.message && error.message.includes("Analysis already exists")) {
+            console.log("Analysis already exists, trying to get existing analysis");
+            try {
+              // Fetch the existing analysis
+              const analysis = await nlpApi.getDocumentAnalysis(currentDocument.id);
+              setDocumentAnalysis(analysis);
+              success = true;
+              return;
+            } catch (secondError) {
+              console.error("Failed to get existing analysis:", secondError);
+            }
+          }
+          
+          // If analysis doesn't exist, try to trigger a new one
+          if (error.status === 404) {
+            try {
+              console.log("No analysis found, triggering new analysis");
+              const newAnalysis = await nlpApi.triggerDocumentAnalysis(currentDocument.id);
+              setDocumentAnalysis(newAnalysis);
+              success = true;
+            } catch (triggerError: any) {
+              if (triggerError.message && triggerError.message.includes("Analysis already exists")) {
+                console.log("Analysis creation reports it already exists - attempting to fetch existing");
+                try {
+                  // One final attempt to fetch existing analysis
+                  const existingAnalysis = await nlpApi.getDocumentAnalysis(currentDocument.id);
+                  setDocumentAnalysis(existingAnalysis);
+                  success = true;
+                  return;
+                } catch (finalError) {
+                  console.error("Final attempt to get analysis failed:", finalError);
+                  throw finalError;
+                }
+              } else {
+                console.error("Error triggering analysis:", triggerError);
+                throw triggerError;
+              }
+            }
+          } else {
+            throw error;
+          }
         }
-      } catch (error) {
-        console.error("Analysis error:", error);
-        if (retryCount < maxRetries) {
-          console.log(`Retrying analysis (${retryCount + 1}/${maxRetries})...`);
+      };
+      
+      // Attempt with retries
+      while (retryCount < maxRetries && !success) {
+        try {
+          await attemptAnalysis();
+        } catch (error: any) {
           retryCount++;
-          // Wait 1 second before retrying
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return await attemptAnalysis();
+          console.log(`Attempt ${retryCount} failed, ${maxRetries - retryCount} retries left`);
+          if (retryCount < maxRetries) {
+            // Wait 1 second before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            // Create a placeholder analysis with error status if all retries fail
+            console.error("All analysis attempts failed:", error);
+            const errorMessage = error.message || "Failed to analyze document";
+            
+            // If createFallbackAnalysis is defined, use it to create a fallback
+            if (typeof createFallbackAnalysis === 'function') {
+              const fallbackAnalysis = createFallbackAnalysis();
+              if (fallbackAnalysis) {
+                fallbackAnalysis.status = 'error';
+                fallbackAnalysis.error_message = errorMessage;
+                setDocumentAnalysis(fallbackAnalysis);
+              }
+            }
+            
+            toast({
+              title: "Analysis failed",
+              description: errorMessage,
+              variant: "destructive"
+            });
+          }
         }
-        
-        // Create a placeholder analysis with error status if all retries fail
-        setDocumentAnalysis({
-          id: 'error',
-          document: currentDocument.id,
-          summary: '',
-          keywords: [],
-          sentiment: '',
-          entities: {},
-          topics: [],
-          status: 'failed',
-          error_message: 'Failed to load document analysis after multiple attempts',
-          created_at: new Date().toISOString()
-        });
-        
-        toast({
-          title: "Analysis Error",
-          description: "Unable to analyze document. The server might be experiencing issues. Try again later.",
-          variant: "destructive",
-        });
-        return false;
       }
-    };
-    
-    await attemptAnalysis();
-    setIsLoading(false);
+    } catch (error: any) {
+      console.error("Error in document analysis process:", error);
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred while analyzing the document.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [currentDocument, toast]);
 
   // Add this right after the refreshDocumentAnalysis function
@@ -183,160 +232,138 @@ export const DocumentProvider: React.FC<DocumentProviderProps> = ({ children }) 
     }
   }, [currentDocument, toast]);
 
-  // Update the sendChatMessage function to work even without analysis
-  const sendChatMessage = useCallback(async (message: string) => {
+  // Update the sendChatMessage function to work with the new message format being returned from the API service.
+  const sendChatMessage = async (messageContent: string) => {
     if (!currentDocument) return;
     
-    setIsLoading(true);
-    // Create a temporary ID that we can reliably remove if needed
-    const tempId = `temp-${Date.now()}`;
+    const tempId = `user-${Date.now()}`;
     
-    // Define tempUserMessage outside the try block so it's available everywhere
-    const tempUserMessage: ChatMessage = {
-      id: tempId,
-      document_id: currentDocument.id,
-      content: message,
-      sender: 'user',
-      timestamp: new Date().toISOString(),
-    };
+    // Create temp user message for optimistic UI update
+    setChatMessages(prev => [
+      ...prev, 
+      {
+        id: tempId,
+        role: 'user',
+        content: messageContent,
+        created_at: new Date().toISOString()
+      }
+    ]);
+    
+    setIsLoading(true);
     
     try {
-      // Optimistically add the user message
-      setChatMessages(prev => [...prev, tempUserMessage]);
-      
-      // Check if this is a request to retry analysis
-      if (message.toLowerCase().includes('retry analysis') || 
-          message.toLowerCase().includes('analyze again')) {
+      // Check if we need to retry document analysis
+      if (
+        messageContent.toLowerCase().includes('retry analysis') || 
+        messageContent.toLowerCase().includes('analyze again')
+      ) {
+        setChatMessages(prev => [
+          ...prev, 
+          {
+            id: `system-${Date.now()}`,
+            role: 'system',
+            content: 'Retrying document analysis...',
+            created_at: new Date().toISOString()
+          }
+        ]);
         
-        // Replace temp message with confirmed user message
-        setChatMessages(prev => {
-          const filtered = prev.filter(msg => msg.id !== tempId);
-          return [...filtered, {
-            ...tempUserMessage,
-            id: `user-${Date.now()}`
-          }];
-        });
-        
-        // Add system message that we're retrying analysis
-        const systemMessage: ChatMessage = {
-          id: `system-${Date.now()}`,
-          document_id: currentDocument.id,
-          content: "I'll retry analyzing this document for you.",
-          sender: 'assistant',
-          timestamp: new Date().toISOString(),
-        };
-        setChatMessages(prev => [...prev, systemMessage]);
-        
-        // Trigger analysis refresh
         await refreshDocumentAnalysis();
         
-        // Add a confirmation message after analysis completes
-        const completionMessage: ChatMessage = {
-          id: `system-${Date.now() + 1}`,
-          document_id: currentDocument.id,
-          content: documentAnalysis?.status === 'failed' 
-            ? "I tried to analyze the document again, but there are still some issues. You can continue chatting though." 
-            : "I've completed the document analysis. You can now ask me questions about it.",
-          sender: 'assistant',
-          timestamp: new Date().toISOString(),
-        };
-        setChatMessages(prev => [...prev, completionMessage]);
+        // Add confirmation message after analysis completes
+        const statusMessage = documentAnalysis && documentAnalysis.status === 'completed'
+          ? 'Analysis completed successfully! You can now continue with your requests.'
+          : 'Analysis process completed, but there may still be issues. Please check the analysis tab.';
+          
+        setChatMessages(prev => [
+          ...prev, 
+          {
+            id: `system-${Date.now() + 1}`,
+            role: 'system',
+            content: statusMessage,
+            created_at: new Date().toISOString()
+          }
+        ]);
+        
         setIsLoading(false);
         return;
       }
       
-      // If we don't have an analysis and this isn't a retry attempt,
-      // create a fallback analysis if needed
-      if (!documentAnalysis) {
-        const fallback = createFallbackAnalysis();
-        if (fallback) {
-          setDocumentAnalysis(fallback);
-        }
-      }
-      
-      // Send to API
-      console.log(`Sending message for document ${currentDocument.id}:`, message);
-      let response;
-      let retryCount = 0;
-      const maxRetries = 2;
-      
-      const sendWithRetry = async () => {
-        try {
-          return await chatService.sendMessage(currentDocument.id, message);
-        } catch (error) {
-          console.error(`Send message error (attempt ${retryCount + 1}):`, error);
-          if (retryCount < maxRetries) {
-            retryCount++;
-            // Wait before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return await sendWithRetry();
+      // If no analysis exists and we're not asking to retry, create fallback
+      if (!documentAnalysis && !messageContent.toLowerCase().includes('retry analysis')) {
+        if (typeof createFallbackAnalysis === 'function') {
+          const fallback = createFallbackAnalysis();
+          if (fallback) {
+            console.log("Setting fallback analysis for chat:", fallback);
+            setDocumentAnalysis(fallback);
           }
-          throw error;
         }
-      };
-      
-      response = await sendWithRetry();
-      console.log("Message response:", response);
-      
-      // Replace temp message with real message and add system response
-      if (response && response.userMessage && response.systemResponse) {
-        setChatMessages(prev => {
-          const filtered = prev.filter(msg => msg.id !== tempId);
-          return [...filtered, response.userMessage, response.systemResponse];
-        });
-      } else {
-        // If we don't get a proper response, add a generic system response
-        const genericResponse: ChatMessage = {
-          id: `system-${Date.now()}`,
-          document_id: currentDocument.id,
-          content: "I processed your request, but couldn't generate a specific response. Please try again with a different query.",
-          sender: 'assistant',
-          timestamp: new Date().toISOString(),
-        };
-        
-        setChatMessages(prev => {
-          // Replace temp message with confirmed one
-          const filtered = prev.filter(msg => msg.id !== tempId);
-          return [...filtered, 
-            {...tempUserMessage, id: `user-${Date.now()}`},
-            genericResponse
-          ];
-        });
       }
       
-      // Refresh the document preview after sending a message
-      await refreshDocumentPreview();
+      // Try to send message with retries
+      let maxRetries = 2;
+      let retryCount = 0;
+      let success = false;
+      let responseMessages = null;
       
+      while (retryCount <= maxRetries && !success) {
+        try {
+          responseMessages = await nlpApi.sendMessage(currentDocument.id, messageContent);
+          success = true;
+        } catch (error) {
+          console.error(`Message send error (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+          retryCount++;
+          
+          if (retryCount <= maxRetries) {
+            // Wait 1 second before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            // Add error message if all retries fail
+            setChatMessages(prev => {
+              // Filter out the temp message we added
+              const filtered = prev.filter(msg => msg.id !== tempId);
+              
+              // Add both the actual user message and error response
+              return [
+                ...filtered,
+                {
+                  id: `user-${Date.now()}`,
+                  role: 'user',
+                  content: messageContent,
+                  created_at: new Date().toISOString()
+                },
+                {
+                  id: `system-${Date.now()}`,
+                  role: 'system',
+                  content: "I'm sorry, I encountered an error processing your message. Please try again later.",
+                  created_at: new Date().toISOString()
+                }
+              ];
+            });
+            
+            setIsLoading(false);
+            throw error;
+          }
+        }
+      }
+      
+      if (success && responseMessages) {
+        setChatMessages(prev => {
+          // Filter out the temp message we added
+          const filtered = prev.filter(msg => msg.id !== tempId);
+          
+          // Add the confirmed messages from the API
+          return [...filtered, ...responseMessages];
+        });
+        
+        // Refresh document preview after sending a message
+        refreshDocumentPreview();
+      }
     } catch (error) {
-      console.error("Send message error:", error);
-      
-      // Remove the temp message on error
-      setChatMessages(prev => prev.filter(msg => msg.id !== tempId));
-      
-      // Add a system error message instead
-      const errorMessage: ChatMessage = {
-        id: `error-${Date.now()}`,
-        document_id: currentDocument.id,
-        content: "Sorry, I encountered an error processing your request. The server might be busy or experiencing issues. You can try again or ask something simpler.",
-        sender: 'assistant',
-        timestamp: new Date().toISOString(),
-      };
-      
-      // Add the user message with a confirmed ID and the error message
-      setChatMessages(prev => [...prev, 
-        {...tempUserMessage, id: `user-${Date.now()}`},
-        errorMessage
-      ]);
-      
-      toast({
-        title: "Request Failed",
-        description: "Couldn't process your request. You can continue chatting though.",
-        variant: "destructive",
-      });
+      console.error('Error in sendChatMessage:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [currentDocument, toast, refreshDocumentPreview, documentAnalysis, createFallbackAnalysis, refreshDocumentAnalysis]);
+  };
 
   // Update chat history, document preview, and analysis when current document changes
   React.useEffect(() => {

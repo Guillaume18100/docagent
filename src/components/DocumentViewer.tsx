@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useDocumentContext } from '@/context/DocumentContext';
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,16 @@ const DocumentViewer: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${currentDocument.name.split('.')[0]}_processed.${documentPreview.mime_type.split('/')[1]}`;
+      
+      // Get file extension safely from mime type or use the original extension from filename or default to pdf
+      let fileExtension = 'pdf';
+      if (documentPreview.mime_type && documentPreview.mime_type.includes('/')) {
+        fileExtension = documentPreview.mime_type.split('/')[1];
+      } else if (currentDocument.name && currentDocument.name.includes('.')) {
+        fileExtension = currentDocument.name.split('.').pop() || 'pdf';
+      }
+      
+      a.download = `${currentDocument.name.split('.')[0]}_processed.${fileExtension}`;
       document.body.appendChild(a);
       a.click();
       

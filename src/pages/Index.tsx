@@ -1,7 +1,7 @@
 import React from 'react';
 import { DocumentProvider } from '@/context/DocumentContext';
 import FileUpload from '@/components/FileUpload';
-import ChatInterface from '@/components/ChatInterface';
+import DocumentActions from '@/components/ChatInterface';
 import DocumentViewer from '@/components/DocumentViewer';
 import DocumentAnalysisViewer from '@/components/DocumentAnalysisViewer';
 import { Separator } from '@/components/ui/separator';
@@ -17,7 +17,7 @@ const Index: React.FC = () => {
               <div>
                 <h1 className="text-2xl font-semibold">Enterprise Document Automation</h1>
                 <p className="text-sm text-muted-foreground">
-                  Upload documents, specify requirements, and generate drafts
+                  Upload documents, analyze content, and process with AI
                 </p>
               </div>
             </div>
@@ -44,14 +44,14 @@ const Index: React.FC = () => {
                 <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
                   <li>Upload your document</li>
                   <li>The system will automatically analyze your document</li>
-                  <li>Specify your requirements in the chat</li>
-                  <li>Review and download the generated draft</li>
+                  <li>Select an action to process your document</li>
+                  <li>Review and download the results</li>
                 </ol>
               </div>
             </div>
             
             <div className="h-[700px]">
-              <ChatInterface />
+              <DocumentActions />
             </div>
             
             <div className="h-[700px]">

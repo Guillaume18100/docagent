@@ -87,15 +87,7 @@ type ActionResult = {
 };
 
 const DocumentActions: React.FC = () => {
-  const { 
-    currentDocument, 
-    documentAnalysis, 
-    isLoading, 
-    sendChatMessage, 
-    refreshDocumentAnalysis,
-    chatMessages
-  } = useDocumentContext();
-  
+  const { currentDocument, documentAnalysis, isLoading, sendChatMessage, refreshDocumentAnalysis } = useDocumentContext();
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [processingAction, setProcessingAction] = useState<boolean>(false);
   const [actionResults, setActionResults] = useState<Record<string, ActionResult>>({});
@@ -104,7 +96,7 @@ const DocumentActions: React.FC = () => {
   // Handle document analysis status
   const isAnalysisReady = documentAnalysis && documentAnalysis.status === 'completed';
   const isAnalysisProcessing = documentAnalysis && (documentAnalysis.status === 'processing' || documentAnalysis.status === 'pending');
-  const isAnalysisFailed = documentAnalysis && (documentAnalysis.status === 'failed' || documentAnalysis.status === 'error');
+  const isAnalysisFailed = documentAnalysis && documentAnalysis.status === 'failed';
 
   // Simulate progress for analysis
   React.useEffect(() => {
@@ -130,31 +122,6 @@ const DocumentActions: React.FC = () => {
     };
   }, [isAnalysisProcessing, isAnalysisReady, isAnalysisFailed]);
 
-  // Monitor chat messages for results
-  React.useEffect(() => {
-    if (!activeAction || !processingAction || chatMessages.length === 0) return;
-    
-    // Look for the last system message that could be our response
-    const lastSystemMessage = [...chatMessages]
-      .reverse()
-      .find(msg => msg.role === 'system');
-      
-    if (lastSystemMessage && lastSystemMessage.content) {
-      // Update with the completed result
-      setActionResults(prev => ({
-        ...prev,
-        [activeAction]: {
-          id: activeAction,
-          content: lastSystemMessage.content,
-          status: 'completed',
-          createdAt: new Date()
-        }
-      }));
-      
-      setProcessingAction(false);
-    }
-  }, [chatMessages, activeAction, processingAction]);
-
   const handleActionSelect = async (actionId: string) => {
     if (isLoading || processingAction || !isAnalysisReady) return;
     
@@ -176,10 +143,20 @@ const DocumentActions: React.FC = () => {
     }));
     
     try {
-      // Send the action prompt to the chat system
-      await sendChatMessage(action.prompt);
+      // This is where we would integrate with the API
+      // For now, we'll simulate an API call with a timeout
+      const response = await sendActionRequest(action.prompt);
       
-      // Note: The result will be updated by the useEffect above that monitors chat messages
+      // Update with the completed result
+      setActionResults(prev => ({
+        ...prev,
+        [actionId]: {
+          id: actionId,
+          content: response,
+          status: 'completed',
+          createdAt: new Date()
+        }
+      }));
     } catch (error) {
       console.error(`Error processing action ${actionId}:`, error);
       
@@ -193,14 +170,23 @@ const DocumentActions: React.FC = () => {
           createdAt: new Date()
         }
       }));
-      
+    } finally {
       setProcessingAction(false);
     }
   };
 
-  // Reset the active action and return to actions list
-  const handleBackToActions = () => {
-    setActiveAction(null);
+  // Simulate API call
+  const sendActionRequest = async (prompt: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        try {
+          // Real implementation would call the API service here
+          resolve("This is a simulated response for the requested action. In a real implementation, this would contain the actual results of processing the document according to the selected action.");
+        } catch (err) {
+          reject(err);
+        }
+      }, 2000);
+    });
   };
 
   return (
@@ -268,7 +254,7 @@ const DocumentActions: React.FC = () => {
               disabled={isLoading}
             >
               <RefreshCwIcon className="h-4 w-4 mr-2" />
-              Check Progress
+              Check Status
             </Button>
           </div>
         ) : isAnalysisFailed ? (
@@ -279,11 +265,11 @@ const DocumentActions: React.FC = () => {
             <div>
               <h3 className="font-medium">Analysis failed</h3>
               <p className="text-sm text-muted-foreground">
-                {documentAnalysis?.error_message || "There was an error analyzing your document"}
+                {documentAnalysis.error_message || "Something went wrong during analysis"}
               </p>
             </div>
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
               onClick={refreshDocumentAnalysis}
               disabled={isLoading}
@@ -292,113 +278,130 @@ const DocumentActions: React.FC = () => {
               Retry Analysis
             </Button>
           </div>
-        ) : activeAction ? (
-          // Show action result
-          <div className="h-full flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToActions}
-                className="px-2"
-              >
-                <ArrowRightIcon className="h-4 w-4 mr-2 rotate-180" />
-                Back to Actions
-              </Button>
-              
-              {/* Action title */}
-              <div className="flex items-center">
-                {(() => {
-                  const action = documentActions.find(a => a.id === activeAction);
-                  const Icon = action?.icon as LucideIcon;
-                  return (
-                    <>
-                      {Icon && <Icon className="h-4 w-4 mr-2" />}
-                      <span className="font-medium">{action?.resultTitle || 'Result'}</span>
-                    </>
-                  );
-                })()}
-              </div>
-              
-              <div>
-                {actionResults[activeAction]?.status === 'completed' && (
-                  <Badge variant="outline" className="bg-green-50">
-                    <CheckIcon className="h-3 w-3 mr-1" />
-                    Complete
-                  </Badge>
-                )}
-                
-                {actionResults[activeAction]?.status === 'processing' && (
-                  <Badge variant="outline" className="bg-blue-50">
-                    <RefreshCwIcon className="h-3 w-3 mr-1 animate-spin" />
-                    Processing
-                  </Badge>
-                )}
-                
-                {actionResults[activeAction]?.status === 'error' && (
-                  <Badge variant="outline" className="bg-red-50">
-                    <AlertCircleIcon className="h-3 w-3 mr-1" />
-                    Error
-                  </Badge>
-                )}
-              </div>
-            </div>
-            
-            {/* Result content */}
-            <div className="flex-1 p-4 bg-background rounded-lg border overflow-auto whitespace-pre-wrap">
-              {actionResults[activeAction]?.content || 'Processing your request...'}
-            </div>
-            
-            {/* Actions for result */}
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleActionSelect(activeAction)}
-                disabled={processingAction || isLoading}
-              >
-                <RefreshCwIcon className="h-4 w-4 mr-2" />
-                Regenerate
-              </Button>
-              {/* Additional actions like copy, download, etc. could be added here */}
-            </div>
-          </div>
         ) : (
-          // Show available actions
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {documentActions.map((action) => {
-              const Icon = action.icon;
-              const hasResult = actionResults[action.id];
-              
-              return (
-                <Card 
-                  key={action.id}
-                  className={`cursor-pointer transition-all hover:shadow-md ${
-                    hasResult ? 'border-primary/20 bg-primary/5' : ''
-                  }`}
-                  onClick={() => handleActionSelect(action.id)}
-                >
-                  <CardHeader className="p-4 pb-2">
-                    <div className="flex justify-between items-start">
-                      <div className="bg-primary/10 p-2 rounded-full">
-                        <Icon className="h-4 w-4 text-primary" />
+          <div className="space-y-4">
+            {/* Analysis Status Card */}
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-4">
+                <div className="flex items-center">
+                  <CheckIcon className="h-5 w-5 text-green-500 mr-2" />
+                  <div>
+                    <h3 className="font-medium text-green-700">Document Analysis Complete</h3>
+                    <p className="text-sm text-green-600">
+                      Your document has been successfully analyzed and is ready for processing
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Action Cards */}
+            <div className="text-sm font-medium mb-2">Available actions:</div>
+            <div className="space-y-3">
+              {documentActions.map((action) => {
+                const result = actionResults[action.id];
+                const isActive = activeAction === action.id;
+                const hasResult = !!result;
+                
+                return (
+                  <Collapsible 
+                    key={action.id}
+                    open={isActive}
+                    onOpenChange={(open) => {
+                      if (open) {
+                        setActiveAction(action.id);
+                      } else if (isActive) {
+                        setActiveAction(null);
+                      }
+                    }}
+                    className="border rounded-lg overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between p-4 bg-card">
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-primary/10 p-2 rounded-md">
+                          <action.icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{action.label}</h3>
+                          <p className="text-sm text-muted-foreground">{action.description}</p>
+                        </div>
                       </div>
                       
-                      {hasResult && (
-                        <Badge variant="outline" className="bg-green-50">
-                          <CheckIcon className="h-3 w-3 mr-1" />
-                          Done
-                        </Badge>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        {hasResult && result.status === 'completed' && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                            <CheckIcon className="h-3 w-3 mr-1" />
+                            Complete
+                          </Badge>
+                        )}
+                        
+                        {hasResult && result.status === 'error' && (
+                          <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                            <AlertCircleIcon className="h-3 w-3 mr-1" />
+                            Error
+                          </Badge>
+                        )}
+                        
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <ChevronDownIcon className={`h-4 w-4 transition-transform ${isActive ? 'transform rotate-180' : ''}`} />
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
                     </div>
-                    <CardTitle className="text-base mt-2">{action.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <CardDescription>{action.description}</CardDescription>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    
+                    <CollapsibleContent>
+                      <div className="p-4 bg-muted/30 border-t">
+                        {!hasResult ? (
+                          <div className="flex flex-col items-center justify-center py-4 space-y-3">
+                            <p className="text-sm text-muted-foreground">
+                              Start processing to see results
+                            </p>
+                            <Button
+                              onClick={() => handleActionSelect(action.id)}
+                              disabled={isLoading || processingAction}
+                              className="w-full sm:w-auto"
+                            >
+                              <ArrowRightIcon className="h-4 w-4 mr-2" />
+                              Process Document
+                            </Button>
+                          </div>
+                        ) : result.status === 'processing' ? (
+                          <div className="flex flex-col items-center justify-center py-4 space-y-3">
+                            <Skeleton className="h-4 w-32 animate-pulse" />
+                            <Skeleton className="h-4 w-48 animate-pulse" />
+                            <Skeleton className="h-4 w-40 animate-pulse" />
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium text-sm">{action.resultTitle}</h4>
+                              <Badge variant="outline" className="text-xs">
+                                {new Date(result.createdAt).toLocaleString()}
+                              </Badge>
+                            </div>
+                            <div className="p-3 bg-white rounded-md border whitespace-pre-wrap text-sm">
+                              {result.content}
+                            </div>
+                            <div className="flex justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleActionSelect(action.id)}
+                                disabled={isLoading || processingAction}
+                              >
+                                <RefreshCwIcon className="h-3 w-3 mr-2" />
+                                Regenerate
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
           </div>
         )}
       </ScrollArea>
